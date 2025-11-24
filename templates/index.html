@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoodBridge - Community Food Sharing</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Lora:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6b7d6b;
+            --accent: #d4a574;
+            --dark: #2d2d2d;
+            --light: #f5f3f0;
+            --cream: #faf8f5;
+            --border: #e8e3dd;
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Lora', Georgia, serif;
+            background: var(--cream);
+            color: var(--dark);
+            line-height: 1.7;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            color: var(--dark);
+            letter-spacing: -0.5px;
+        }
+        
+        header {
+            background: var(--cream);
+            border-bottom: 2px solid var(--accent);
+            padding: 2.5rem 1rem;
+            text-align: center;
+            position: relative;
+        }
+        
+        header::before {
+            content: "— ";
+            color: var(--primary);
+            font-size: 1.2rem;
+            letter-spacing: 3px;
+        }
+        
+        header::after {
+            content: " —";
+            color: var(--primary);
+            font-size: 1.2rem;
+            letter-spacing: 3px;
+        }
+        
+        header h1 {
+            font-size: 3.5rem;
+            margin: 0.5rem 0 0.2rem;
+            letter-spacing: 4px;
+            font-weight: 800;
+        }
+        
+        header .tagline {
+            font-size: 1rem;
+            color: var(--primary);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-top: 1rem;
+        }
+        
+        .header-nav {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 2rem;
+            position: absolute;
+            top: 1.5rem;
+            right: 2rem;
+            font-size: 0.95rem;
+        }
+        
+        .header-nav a, .header-nav span {
+            color: var(--dark);
+            text-decoration: none;
+            cursor: pointer;
+            letter-spacing: 1px;
+            transition: color 0.3s;
+        }
+        
+        .header-nav a:hover, .header-nav span:hover {
+            color: var(--accent);
+        }
+        
+        .cart-icon {
+            position: relative;
+            cursor: pointer;
+            font-size: 1.3rem;
+        }
+        
+        .cart-count {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: var(--accent);
+            color: white;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+        
+        nav {
+            background: var(--cream);
+            padding: 1.5rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        nav button {
+            background: transparent;
+            border: none;
+            color: var(--primary);
+            padding: 0.8rem 2rem;
+            cursor: pointer;
+            font-family: 'Lora', Georgia, serif;
+            font-size: 1rem;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+            position: relative;
+            margin: 0 1rem;
+        }
+        
+        nav button::after {
+            content: '';
+            position: absolute;
+            bottom: -3px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--accent);
+            transition: width 0.3s;
+        }
+        
+        nav button:hover::after,
+        nav button.active::after {
+            width: 100%;
+        }
+        
+        nav button.active {
+            color: var(--accent);
+        }
+        
+        main { max-width: 1400px; margin: 0 auto; padding: 3rem 1rem; }
+        
+        .section { display: none; }
+        .section.active { display: block; }
+        
+        .card {
+            background: var(--cream);
+            border: 1px solid var(--border);
+            padding: 3rem;
+            margin-bottom: 2rem;
+            transition: all 0.3s;
+        }
+        
+        .card:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        }
+        
+        .card h2 {
+            font-size: 2.2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .card > p {
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            font-size: 1rem;
+        }
+        
+        .form-group {
+            margin-bottom: 2rem;
+        }
+        
+        label {
+            display: block;
+            font-family: 'Playfair Display', serif;
+            font-size: 1.1rem;
+            margin-bottom: 0.8rem;
+            color: var(--dark);
+            letter-spacing: 0.5px;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 1rem;
+            border: 1px solid var(--border);
+            background: #fff;
+            font-family: 'Lora', Georgia, serif;
+            font-size: 1rem;
+            color: var(--dark);
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: inset 0 0 0 1px var(--accent);
+        }
+        
+        button.submit {
+            background: var(--primary);
+            color: white;
+            padding: 1rem 3rem;
+            border: none;
+            cursor: pointer;
+            font-family: 'Lora', Georgia, serif;
+            font-size: 1rem;
+            letter-spacing: 2px;
+            transition: all 0.3s;
+            width: 100%;
+            text-transform: uppercase;
+        }
+        
+        button.submit:hover {
+            background: var(--accent);
+            color: var(--dark);
+        }
+        
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        
+        .item-card {
+            background: #fff;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+        
+        .item-card:hover {
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+            transform: translateY(-4px);
+        }
+        
+        .item-image {
+            width: 100%;
+            height: 240px;
+            object-fit: cover;
+            display: block;
+        }
+        
+        .item-info {
+            padding: 2rem;
+        }
+        
+        .item-category {
+            font-size: 0.85rem;
+            color: var(--primary);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+        
+        .item-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.4rem;
+            margin-bottom: 0.8rem;
+            color: var(--dark);
+        }
+        
+        .item-detail {
+            font-size: 0.95rem;
+            color: #666;
+            margin: 0.5rem 0;
+        }
+        
+        .price {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.6rem;
+            color: var(--accent);
+            margin: 1rem 0;
+            font-weight: 700;
+        }
+        
+        .free-badge {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin: 1rem 0;
+        }
+        
+        .item-actions {
+            display: flex;
+            gap: 0.8rem;
+            margin-top: 1.5rem;
+        }
+        
+        .add-to-cart-btn, .remove-btn {
+            flex: 1;
+            padding: 0.8rem;
+            border: 1px solid var(--primary);
+            background: transparent;
+            color: var(--primary);
+            cursor: pointer;
+            font-family: 'Lora', Georgia, serif;
+            font-size: 0.95rem;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+            text-transform: uppercase;
+        }
+        
+        .add-to-cart-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .remove-btn {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        
+        .remove-btn:hover {
+            background: var(--accent);
+            color: white;
+        }
+        
+        .cart-sidebar {
+            position: fixed;
+            right: -450px;
+            top: 0;
+            width: 450px;
+            height: 100vh;
+            background: var(--cream);
+            border-left: 2px solid var(--accent);
+            transition: right 0.4s;
+            padding: 2.5rem 2rem;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+        
+        .cart-sidebar.open { right: 0; }
+        
+        .cart-sidebar h2 {
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .cart-item {
+            padding: 1.5rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .cart-item strong {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.1rem;
+        }
+        
+        .cart-empty {
+            text-align: center;
+            color: var(--primary);
+            padding: 3rem 0;
+            font-size: 1.1rem;
+        }
+        
+        .cart-total {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 2px solid var(--accent);
+            color: var(--accent);
+        }
+        
+        .checkout-btn {
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            padding: 1rem;
+            border: none;
+            cursor: pointer;
+            font-family: 'Lora', Georgia, serif;
+            font-size: 1rem;
+            letter-spacing: 2px;
+            margin-top: 1.5rem;
+            text-transform: uppercase;
+            transition: all 0.3s;
+        }
+        
+        .checkout-btn:hover {
+            background: var(--accent);
+            color: var(--dark);
+        }
+        
+        .close-cart {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            cursor: pointer;
+            font-size: 1.8rem;
+            color: var(--primary);
+        }
+        
+        .message {
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid;
+        }
+        
+        .message.success {
+            background: #f0f8f0;
+            border-left-color: var(--primary);
+            color: var(--primary);
+        }
+        
+        .message.error {
+            background: #fef3f0;
+            border-left-color: var(--accent);
+            color: #c85a54;
+        }
+        
+        .filter-group {
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+        
+        .filter-group label {
+            margin-bottom: 0.5rem;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--primary);
+            font-size: 0.95rem;
+            border-top: 1px solid var(--border);
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-nav">
+            <span onclick="switchTab('mydonations')" style="cursor: pointer;">My Donations</span>
+            <div class="cart-icon" onclick="toggleCart()">
+                🛒
+                <span class="cart-count" id="cartCount">0</span>
+            </div>
+        </div>
+        <h1>FOODBRIDGE</h1>
+        <div class="tagline">Community Food Sharing</div>
+    </header>
+    
+    <nav>
+        <button class="nav-btn active" onclick="switchTab('donate')">Donate Food</button>
+        <button class="nav-btn" onclick="switchTab('shop')">Shop</button>
+    </nav>
+    
+    <main>
+        <!-- Donate Tab -->
+        <section id="donate" class="section active">
+            <div class="card">
+                <h2>Share Your Abundance</h2>
+                <p>Help lower-income families by donating unopened, non-perishable food items. All donations are freely given.</p>
+                <div id="donateMessage"></div>
+                <form id="donateForm" onsubmit="submitDonation(event)">
+                    <div class="form-group">
+                        <label>Your Name</label>
+                        <input type="text" id="donorName" name="donor_name" placeholder="Jane Doe" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Food Item</label>
+                        <input type="text" id="itemName" name="item_name" placeholder="Canned Beans, Rice, Pasta" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="category" name="category" required>
+                            <option value="">Select a category</option>
+                            <option value="canned">Canned Goods</option>
+                            <option value="dry">Dry Goods</option>
+                            <option value="protein">Protein</option>
+                            <option value="grains">Grains & Cereals</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Quantity</label>
+                        <input type="text" id="quantity" name="quantity" placeholder="5 cans, 2 boxes, 1 bag" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Expiration Date</label>
+                        <input type="date" id="expiration" name="expiration_date" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Photo</label>
+                        <input type="file" id="image" name="file" accept="image/*" required>
+                    </div>
+                    
+                    <button type="submit" class="submit">Post Donation</button>
+                </form>
+            </div>
+        </section>
+        
+        <!-- Shop Tab -->
+        <section id="shop" class="section">
+            <div class="card">
+                <h2>Browse & Shop</h2>
+                <p>Free items from donors + discounted bulk boxes. Add to cart and schedule pickup or delivery.</p>
+                
+                <div class="filter-group">
+                    <label>Filter by Category</label>
+                    <select id="categoryFilter" onchange="loadShop()">
+                        <option value="all">All Items</option>
+                        <option value="canned">Canned Goods</option>
+                        <option value="dry">Dry Goods</option>
+                        <option value="protein">Protein</option>
+                        <option value="grains">Grains</option>
+                        <option value="produce">Produce</option>
+                        <option value="dairy">Dairy</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div id="shopMessage"></div>
+            <div id="gallery" class="gallery"></div>
+        </section>
+        
+        <!-- My Donations Tab -->
+        <section id="mydonations" class="section">
+            <div class="card">
+                <h2>My Donations</h2>
+                <div class="filter-group">
+                    <input type="text" id="donorFilter" placeholder="Enter your name" onkeyup="loadMyDonations()" style="width: 300px; max-width: 100%;">
+                </div>
+            </div>
+            <div id="mydonationsMessage"></div>
+            <div id="myGallery" class="gallery"></div>
+        </section>
+    </main>
+    
+    <!-- Cart Sidebar -->
+    <div class="cart-sidebar" id="cartSidebar">
+        <span class="close-cart" onclick="toggleCart()">✕</span>
+        <h2>Your Cart</h2>
+        <div id="cartContent">
+            <div class="cart-empty">Your cart is empty</div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>FOODBRIDGE © 2025 | Supporting food access for all</p>
+    </footer>
+    
+    <script>
+        let currentUserId = localStorage.getItem('userId') || generateUserId();
+        localStorage.setItem('userId', currentUserId);
+        
+        function generateUserId() {
+            return 'user-' + Math.random().toString(36).substr(2, 9);
+        }
+        
+        function switchTab(tabName) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            
+            document.getElementById(tabName).classList.add('active');
+            const btn = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.textContent.toLowerCase().includes(tabName === 'donate' ? 'donate' : 'shop'));
+            if (btn) btn.classList.add('active');
+            
+            if (tabName === 'shop') loadShop();
+            if (tabName === 'mydonations') loadMyDonations();
+        }
+        
+        function toggleCart() {
+            document.getElementById('cartSidebar').classList.toggle('open');
+        }
+        
+        async function submitDonation(event) {
+            event.preventDefault();
+            const form = document.getElementById('donateForm');
+            const messageEl = document.getElementById('donateMessage');
+            
+            try {
+                const formData = new FormData(form);
+                const response = await fetch('/api/donate', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.ok) {
+                    messageEl.innerHTML = `<div class="message success">✓ Thank you! Your donation has been posted.</div>`;
+                    form.reset();
+                    setTimeout(() => messageEl.innerHTML = '', 3000);
+                } else {
+                    messageEl.innerHTML = `<div class="message error">✗ Error: ${data.error}</div>`;
+                }
+            } catch (error) {
+                messageEl.innerHTML = `<div class="message error">✗ Error: ${error.message}</div>`;
+            }
+        }
+        
+        async function loadShop() {
+            const category = document.getElementById('categoryFilter').value;
+            const gallery = document.getElementById('gallery');
+            const messageEl = document.getElementById('shopMessage');
+            
+            gallery.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #6b7d6b;">Loading...</div>';
+            
+            try {
+                let url = '/api/shop';
+                if (category !== 'all') url += `?category=${category}`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.ok && data.items.length > 0) {
+                    messageEl.innerHTML = '';
+                    gallery.innerHTML = data.items.map(item => renderShopCard(item)).join('');
+                } else {
+                    gallery.innerHTML = '';
+                    messageEl.innerHTML = '<div class="message success">More items coming soon. Check back later.</div>';
+                }
+            } catch (error) {
+                gallery.innerHTML = '';
+                messageEl.innerHTML = `<div class="message error">Error: ${error.message}</div>`;
+            }
+        }
+        
+        function renderShopCard(item) {
+            const priceDisplay = item.price === 0 ? '<div class="free-badge">Free</div>' : `<div class="price">$${item.price}</div>`;
+            
+            return `
+                <div class="item-card">
+                    <img src="${item.image_url}" alt="${item.item_name}" class="item-image" onerror="this.src='https://via.placeholder.com/400x300?text=Food'">
+                    <div class="item-info">
+                        <div class="item-category">${item.category}</div>
+                        <div class="item-name">${item.item_name}</div>
+                        <div class="item-detail">Qty: ${item.quantity}</div>
+                        ${priceDisplay}
+                        <div class="item-actions">
+                            <button class="add-to-cart-btn" onclick="addToCart('${item.id}')">Add to Cart</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        async function addToCart(itemId) {
+            try {
+                const response = await fetch('/api/cart/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `user_id=${currentUserId}&item_id=${itemId}&quantity=1`
+                });
+                
+                const data = await response.json();
+                
+                if (data.ok) {
+                    updateCartCount();
+                    alert('Added to cart');
+                    loadCart();
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        }
+        
+        async function updateCartCount() {
+            try {
+                const response = await fetch(`/api/cart/${currentUserId}`);
+                const data = await response.json();
+                document.getElementById('cartCount').textContent = data.cart.length;
+            } catch (error) {
+                console.error('Error updating cart:', error);
+            }
+        }
+        
+        async function loadCart() {
+            try {
+                const response = await fetch(`/api/cart/${currentUserId}`);
+                const data = await response.json();
+                
+                const cartContent = document.getElementById('cartContent');
+                
+                if (data.cart.length === 0) {
+                    cartContent.innerHTML = '<div class="cart-empty">Your cart is empty</div>';
+                } else {
+                    cartContent.innerHTML = `
+                        ${data.cart.map(item => `
+                            <div class="cart-item">
+                                <strong>${item.item_name}</strong>
+                                <div style="color: #666; margin-top: 0.5rem;">Qty: ${item.quantity}</div>
+                                <div style="margin-top: 0.3rem; color: var(--accent); font-weight: 600;">$${item.subtotal.toFixed(2)}</div>
+                            </div>
+                        `).join('')}
+                        <div class="cart-total">Total: $${data.total.toFixed(2)}</div>
+                        <button class="checkout-btn" onclick="proceedToCheckout()">Checkout</button>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading cart:', error);
+            }
+        }
+        
+        function proceedToCheckout() {
+            const recipientName = prompt('Enter your name:');
+            if (!recipientName) return;
+            
+            const phone = prompt('Enter your phone number:');
+            if (!phone) return;
+            
+            const pickupOption = confirm('Click OK for Pickup at Donation Center, or Cancel for Delivery Request');
+            const option = pickupOption ? 'pickup' : 'delivery';
+            
+            const preferredDate = prompt('Preferred date (YYYY-MM-DD):');
+            if (!preferredDate) return;
+            
+            submitCheckout(recipientName, phone, option, preferredDate);
+        }
+        
+        async function submitCheckout(name, phone, option, date) {
+            try {
+                const response = await fetch('/api/checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `user_id=${currentUserId}&recipient_name=${name}&phone=${phone}&pickup_option=${option}&preferred_date=${date}`
+                });
+                
+                const data = await response.json();
+                
+                if (data.ok) {
+                    alert(`Order Confirmed!\n\nOrder ID: ${data.order.order_id}\n\n${option === 'pickup' ? 'Pickup at Donation Center' : 'Delivery Request'}\n${date}\n\nWe'll contact you at ${phone}`);
+                    loadCart();
+                    toggleCart();
+                    updateCartCount();
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        }
+        
+        async function loadMyDonations() {
+            const donorName = document.getElementById('donorFilter').value.trim();
+            const gallery = document.getElementById('myGallery');
+            const messageEl = document.getElementById('mydonationsMessage');
+            
+            if (!donorName) {
+                gallery.innerHTML = '';
+                messageEl.innerHTML = '';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/my-donations/${donorName}`);
+                const data = await response.json();
+                
+                if (data.ok && data.items.length > 0) {
+                    messageEl.innerHTML = '';
+                    gallery.innerHTML = data.items.map(item => renderDonationCard(item)).join('');
+                } else {
+                    gallery.innerHTML = '';
+                    messageEl.innerHTML = '<div class="message success">No donations found for this name.</div>';
+                }
+            } catch (error) {
+                gallery.innerHTML = '';
+                messageEl.innerHTML = `<div class="message error">Error: ${error.message}</div>`;
+            }
+        }
+        
+        function renderDonationCard(item) {
+            return `
+                <div class="item-card">
+                    <img src="${item.image_url}" alt="${item.item_name}" class="item-image">
+                    <div class="item-info">
+                        <div class="item-category">${item.category}</div>
+                        <div class="item-name">${item.item_name}</div>
+                        <div class="item-detail">Qty: ${item.quantity}</div>
+                        <div class="item-detail">Status: ${item.status}</div>
+                        <div class="item-actions">
+                            <button class="remove-btn" onclick="removeDonation('${item.id}')">Remove</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        async function removeDonation(donationId) {
+            if (confirm('Remove this donation?')) {
+                try {
+                    const response = await fetch(`/api/donation/${donationId}`, { method: 'DELETE' });
+                    const data = await response.json();
+                    
+                    if (data.ok) {
+                        loadMyDonations();
+                    } else {
+                        alert(`Error: ${data.error}`);
+                    }
+                } catch (error) {
+                    alert(`Error: ${error.message}`);
+                }
+            }
+        }
+        
+        updateCartCount();
+    </script>
+</body>
+</html>
