@@ -927,12 +927,6 @@
             closeCheckoutModal();
             submitCheckout(name, phone, option, date);
         }
-
-            const preferredDate = prompt('Preferred date (YYYY-MM-DD):');
-            if (!preferredDate) return;
-            
-            submitCheckout(recipientName, phone, option, preferredDate);
-        }
         
         async function submitCheckout(name, phone, option, date) {
             try {
