@@ -939,7 +939,7 @@
                 const data = await response.json();
                 
                 if (data.ok) {
-                    alert(`Order Confirmed!\n\nOrder ID: ${data.order.order_id}\n\n${option === 'pickup' ? 'Pickup at Donation Center' : 'Delivery Request'}\n${date}\n\nWe'll contact you at ${phone}`);
+                    showOrderConfirmation(data.order, name, phone, option, date);
                     loadCart();
                     toggleCart();
                     updateCartCount();
@@ -1026,6 +1026,80 @@
         
         // Also update cart count periodically to catch any changes
         setInterval(updateCartCount, 2000);
+
+        function showOrderConfirmation(order, name, phone, option, date) {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 2000;
+            `;
+            
+            const confirmBox = document.createElement('div');
+            confirmBox.style.cssText = `
+                background: white;
+                padding: 3rem;
+                border-radius: 12px;
+                width: 90%;
+                max-width: 500px;
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+                text-align: center;
+            `;
+            
+            confirmBox.innerHTML = `
+                <div style="font-size: 3rem; margin-bottom: 1rem;">✓</div>
+                <h2 style="color: #10b981; margin-bottom: 1rem;">Order Confirmed!</h2>
+                
+                <div style="background: #f5f3f0; padding: 2rem; border-radius: 8px; text-align: left; margin-bottom: 1.5rem;">
+                    <div style="margin-bottom: 1rem;">
+                        <strong style="color: #6b7d6b;">Order ID:</strong><br>
+                        <span style="font-family: monospace; color: #d4a574;">${order.order_id}</span>
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <strong style="color: #6b7d6b;">Name:</strong><br>
+                        ${name}
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <strong style="color: #6b7d6b;">Phone:</strong><br>
+                        ${phone}
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <strong style="color: #6b7d6b;">Pickup/Delivery:</strong><br>
+                        ${option === 'pickup' ? '📍 Pickup at Donation Center' : '🚚 Delivery Request'}
+                    </div>
+                    
+                    <div>
+                        <strong style="color: #6b7d6b;">Preferred Date:</strong><br>
+                        ${date}
+                    </div>
+                </div>
+                
+                <p style="color: #6b7d6b; margin-bottom: 1.5rem;">We'll contact you at <strong>${phone}</strong> to confirm your order.</p>
+                
+                <button onclick="closeOrderConfirmation()" style="padding: 0.8rem 2rem; background: #6b7d6b; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 1rem;">Close</button>
+            `;
+            
+            modal.appendChild(confirmBox);
+            document.body.appendChild(modal);
+            window.orderConfirmationModal = modal;
+        }
+
+        function closeOrderConfirmation() {
+                if (window.currentModal) {
+                    window.currentModal.remove();
+                    window.currentModal = null;
+                }
+        }
     </script>
 </body>
 </html>
