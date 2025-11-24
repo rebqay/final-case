@@ -16,7 +16,8 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 bsc = BlobServiceClient.from_connection_string(CONN_STRING)
 cc = bsc.get_container_client(CONTAINER_NAME)
 
-app = Flask(__name__)
+import os
+app = Flask(__name__, template_folder=os.path.join(os.path.dirname(__file__), '..', 'templates'))
 app.secret_key = "your-secret-key-change-in-production"
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10MB max
 
