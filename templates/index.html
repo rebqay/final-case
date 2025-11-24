@@ -1095,10 +1095,11 @@
         }
 
         function closeOrderConfirmation() {
-                if (window.currentModal) {
-                    window.currentModal.remove();
-                    window.currentModal = null;
-                }
+            const modal = window.orderConfirmationModal;
+            if (modal) {
+                modal.style.display = 'none';
+                setTimeout(() => modal.remove(), 300);
+            }
         }
     </script>
 </body>
