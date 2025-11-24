@@ -251,8 +251,10 @@
         
         .item-image {
             width: 100%;
-            height: 240px;
-            object-fit: cover;
+            height: 300px;
+            object-fit: contain;
+            background: #faf8f5;
+            border-bottom: 1px solid var(--border);
             display: block;
         }
         
@@ -524,20 +526,7 @@
         <section id="shop" class="section">
             <div class="card">
                 <h2>Browse & Shop</h2>
-                <p>Free items from donors + discounted bulk boxes. Add to cart and schedule pickup or delivery.</p>
-                
-                <div class="filter-group">
-                    <label>Filter by Category</label>
-                    <select id="categoryFilter" onchange="loadShop()">
-                        <option value="all">All Items</option>
-                        <option value="canned">Canned Goods</option>
-                        <option value="dry">Dry Goods</option>
-                        <option value="protein">Protein</option>
-                        <option value="grains">Grains</option>
-                        <option value="produce">Produce</option>
-                        <option value="dairy">Dairy</option>
-                    </select>
-                </div>
+                <p>Browse our discounted bulk boxes. Add to cart and schedule pickup or delivery.</p>
             </div>
             
             <div id="shopMessage"></div>
@@ -548,9 +537,7 @@
         <section id="mydonations" class="section">
             <div class="card">
                 <h2>My Donations</h2>
-                <div class="filter-group">
-                    <input type="text" id="donorFilter" placeholder="Enter your name" onkeyup="loadMyDonations()" style="width: 300px; max-width: 100%;">
-                </div>
+                <p>View all your posted donations</p>
             </div>
             <div id="mydonationsMessage"></div>
             <div id="myGallery" class="gallery"></div>
@@ -583,21 +570,41 @@
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             
             document.getElementById(tabName).classList.add('active');
-            const btn = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.textContent.toLowerCase().includes(tabName === 'donate' ? 'donate' : 'shop'));
-            if (btn) btn.classList.add('active');
+            
+            // Only highlight nav buttons for donate and shop tabs (not mydonations)
+            if (tabName === 'donate' || tabName === 'shop') {
+                const btn = Array.from(document.querySelectorAll('.nav-btn')).find(b => {
+                    const btnText = b.textContent.toLowerCase();
+                    return (tabName === 'donate' && btnText.includes('donate')) || 
+                           (tabName === 'shop' && btnText.includes('shop'));
+                });
+                if (btn) btn.classList.add('active');
+            }
             
             if (tabName === 'shop') loadShop();
-            if (tabName === 'mydonations') loadMyDonations();
+            if (tabName === 'mydonations') {
+                // Small delay to ensure tab is visible
+                setTimeout(() => loadMyDonations(), 100);
+            }
         }
         
         function toggleCart() {
-            document.getElementById('cartSidebar').classList.toggle('open');
+            const sidebar = document.getElementById('cartSidebar');
+            sidebar.classList.toggle('open');
+            // Load cart when opening
+            if (sidebar.classList.contains('open')) {
+                loadCart();
+            }
         }
         
         async function submitDonation(event) {
             event.preventDefault();
             const form = document.getElementById('donateForm');
             const messageEl = document.getElementById('donateMessage');
+            const donorName = document.getElementById('donorName').value.trim();
+            
+            // Show loading state
+            messageEl.innerHTML = '<div class="message" style="padding: 1rem;">Uploading donation...</div>';
             
             try {
                 const formData = new FormData(form);
@@ -606,32 +613,52 @@
                     body: formData
                 });
                 
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const data = await response.json();
                 
                 if (data.ok) {
-                    messageEl.innerHTML = `<div class="message success">✓ Thank you! Your donation has been posted.</div>`;
+                    // Store donor name in localStorage for My Donations
+                    if (donorName) {
+                        localStorage.setItem('donorName', donorName);
+                    }
+                    
+                    // Show success message with donation details
+                    const donation = data.donation;
+                    messageEl.innerHTML = `<div class="message success" style="font-size: 1.1rem; padding: 2rem;">
+                        <strong>✓ Success!</strong><br>
+                        Your donation "${donation.item_name}" has been posted successfully!<br>
+                        <small style="opacity: 0.8;">Quantity: ${donation.quantity} | Category: ${donation.category}</small>
+                    </div>`;
                     form.reset();
-                    setTimeout(() => messageEl.innerHTML = '', 3000);
+                    
+                    // After 2 seconds, switch to My Donations tab and load the donations
+                    setTimeout(() => {
+                        // Switch to My Donations tab
+                        switchTab('mydonations');
+                    }, 2000);
+                    
+                    // Clear success message after 5 seconds
+                    setTimeout(() => messageEl.innerHTML = '', 5000);
                 } else {
-                    messageEl.innerHTML = `<div class="message error">✗ Error: ${data.error}</div>`;
+                    messageEl.innerHTML = `<div class="message error">✗ Error: ${data.error || 'Unknown error occurred'}</div>`;
                 }
             } catch (error) {
-                messageEl.innerHTML = `<div class="message error">✗ Error: ${error.message}</div>`;
+                console.error('Donation error:', error);
+                messageEl.innerHTML = `<div class="message error">✗ Error: ${error.message || 'Failed to upload donation. Please try again.'}</div>`;
             }
         }
         
         async function loadShop() {
-            const category = document.getElementById('categoryFilter').value;
             const gallery = document.getElementById('gallery');
             const messageEl = document.getElementById('shopMessage');
             
             gallery.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #6b7d6b;">Loading...</div>';
             
             try {
-                let url = '/api/shop';
-                if (category !== 'all') url += `?category=${category}`;
-                
-                const response = await fetch(url);
+                const response = await fetch('/api/shop');
                 const data = await response.json();
                 
                 if (data.ok && data.items.length > 0) {
@@ -677,8 +704,80 @@
                 const data = await response.json();
                 
                 if (data.ok) {
+                    console.log('Added to cart');
                     updateCartCount();
-                    alert('Added to cart');
+                    loadCart();
+                    // Show green toast notification
+                    showToast('✓ Added to cart successfully!', 'success');
+                } else {
+                    showToast(`✗ Error: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showToast(`✗ Error: ${error.message}`, 'error');
+            }
+        }
+        function showToast(message, type) {
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 2rem;
+                right: 2rem;
+                padding: 1rem 2rem;
+                border-radius: 8px;
+                font-weight: bold;
+                z-index: 3000;
+                animation: slideIn 0.3s ease-in-out;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            `;
+    
+            if (type === 'success') {
+                toast.style.background = '#10b981';
+                toast.style.color = 'white';
+            } else {
+                toast.style.background = '#f43f5e';
+                toast.style.color = 'white';
+            }
+            
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease-in-out';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Add these CSS animations to your <style> section in index.html:
+        // @keyframes slideIn {
+        //     from { transform: translateX(400px); opacity: 0; }
+        //     to { transform: translateX(0); opacity: 1; }
+        // }
+        // @keyframes slideOut {
+        //     from { transform: translateX(0); opacity: 1; }
+        //     to { transform: translateX(400px); opacity: 0; }
+        // }
+        
+        async function removeFromCart(itemId) {
+            if (!confirm('Remove this item from cart?')) {
+                return;
+            }
+            
+            try {
+                const formData = new URLSearchParams();
+                formData.append('user_id', currentUserId);
+                formData.append('item_id', itemId);
+                
+                const response = await fetch('/api/cart/remove', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formData.toString()
+                });
+                
+                const data = await response.json();
+                
+                if (data.ok) {
+                    updateCartCount();
                     loadCart();
                 } else {
                     alert(`Error: ${data.error}`);
@@ -691,10 +790,21 @@
         async function updateCartCount() {
             try {
                 const response = await fetch(`/api/cart/${currentUserId}`);
+                if (!response.ok) {
+                    document.getElementById('cartCount').textContent = '0';
+                    return;
+                }
                 const data = await response.json();
-                document.getElementById('cartCount').textContent = data.cart.length;
+                if (data.ok && Array.isArray(data.cart) && data.cart.length > 0) {
+                    // Only count items that actually exist (have item_name)
+                    const validItems = data.cart.filter(item => item.item_name);
+                    document.getElementById('cartCount').textContent = validItems.length;
+                } else {
+                    document.getElementById('cartCount').textContent = '0';
+                }
             } catch (error) {
                 console.error('Error updating cart:', error);
+                document.getElementById('cartCount').textContent = '0';
             }
         }
         
@@ -705,36 +815,119 @@
                 
                 const cartContent = document.getElementById('cartContent');
                 
-                if (data.cart.length === 0) {
+                if (!data.ok) {
+                    cartContent.innerHTML = '<div class="cart-empty">Error loading cart</div>';
+                    return;
+                }
+                
+                if (!data.cart || data.cart.length === 0) {
                     cartContent.innerHTML = '<div class="cart-empty">Your cart is empty</div>';
+                    updateCartCount();
                 } else {
                     cartContent.innerHTML = `
-                        ${data.cart.map(item => `
-                            <div class="cart-item">
-                                <strong>${item.item_name}</strong>
-                                <div style="color: #666; margin-top: 0.5rem;">Qty: ${item.quantity}</div>
-                                <div style="margin-top: 0.3rem; color: var(--accent); font-weight: 600;">$${item.subtotal.toFixed(2)}</div>
+                        ${data.cart.map((item, index) => `
+                            <div class="cart-item" style="display: flex; justify-content: space-between; align-items: flex-start; padding: 1rem; border-bottom: 1px solid var(--border);">
+                                <div style="flex: 1;">
+                                    <strong>${item.item_name || 'Unknown Item'}</strong>
+                                    <div style="color: #666; margin-top: 0.5rem;">Qty: ${item.quantity || 1}</div>
+                                    <div style="margin-top: 0.3rem; color: var(--accent); font-weight: 600;">$${(item.subtotal || 0).toFixed(2)}</div>
+                                </div>
+                                <button onclick="removeFromCart('${item.item_id}')" style="background: none; border: none; color: #c85a54; cursor: pointer; font-size: 1.2rem; padding: 0.5rem; margin-left: 1rem;" title="Remove from cart">🗑️</button>
                             </div>
                         `).join('')}
-                        <div class="cart-total">Total: $${data.total.toFixed(2)}</div>
+                        <div class="cart-total">Total: $${(data.total || 0).toFixed(2)}</div>
                         <button class="checkout-btn" onclick="proceedToCheckout()">Checkout</button>
                     `;
                 }
             } catch (error) {
                 console.error('Error loading cart:', error);
+                const cartContent = document.getElementById('cartContent');
+                cartContent.innerHTML = '<div class="cart-empty">Error loading cart</div>';
             }
         }
         
         function proceedToCheckout() {
-            const recipientName = prompt('Enter your name:');
-            if (!recipientName) return;
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 2000;
+            `;
+            const form = document.createElement('div');
+            form.style.cssText = `
+                background: white;
+                padding: 2rem;
+                border-radius: 12px;
+                width: 90%;
+                max-width: 500px;
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            `;
+    
+            form.innerHTML = `
+                <h2 style="margin-bottom: 1.5rem; color: #2d2d2d;">Complete Your Order</h2>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; font-weight: bold; margin-bottom: 0.5rem;">Name</label>
+                    <input type="text" id="checkoutName" placeholder="Your name" style="width: 100%; padding: 0.7rem; border: 1px solid #ddd; border-radius: 5px;">
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; font-weight: bold; margin-bottom: 0.5rem;">Phone</label>
+                    <input type="tel" id="checkoutPhone" placeholder="Your phone number" style="width: 100%; padding: 0.7rem; border: 1px solid #ddd; border-radius: 5px;">
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; font-weight: bold; margin-bottom: 0.5rem;">Pickup or Delivery?</label>
+                    <select id="checkoutOption" style="width: 100%; padding: 0.7rem; border: 1px solid #ddd; border-radius: 5px;">
+                        <option value="pickup">Pickup at Donation Center</option>
+                        <option value="delivery">Delivery Request</option>
+                    </select>
+                </div>
+                
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: block; font-weight: bold; margin-bottom: 0.5rem;">Preferred Date</label>
+                    <input type="date" id="checkoutDate" style="width: 100%; padding: 0.7rem; border: 1px solid #ddd; border-radius: 5px;">
+                </div>
+                
+                <div style="display: flex; gap: 1rem;">
+                    <button onclick="closeCheckoutModal()" style="flex: 1; padding: 0.8rem; background: #f0f0f0; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">Cancel</button>
+                    <button onclick="submitCheckoutModal()" style="flex: 1; padding: 0.8rem; background: #10b981; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">Confirm Order</button>
+                </div>
+            `; 
+
+            modal.appendChild(form);
+            document.body.appendChild(modal);
+            window.currentModal = modal;
+        }
+        
+        function closeCheckoutModal() {
+            if (window.currentModal) {
+                window.currentModal.remove();
+                window.currentModal = null;
+            }
+        }
+        function submitCheckoutModal() {
+            const name = document.getElementById('checkoutName').value.trim();
+            const phone = document.getElementById('checkoutPhone').value.trim();
+            const option = document.getElementById('checkoutOption').value;
+            const date = document.getElementById('checkoutDate').value;
             
-            const phone = prompt('Enter your phone number:');
-            if (!phone) return;
+            if (!name || !phone || !date) {
+                alert('Please fill in all fields');
+                return;
+            }
             
-            const pickupOption = confirm('Click OK for Pickup at Donation Center, or Cancel for Delivery Request');
-            const option = pickupOption ? 'pickup' : 'delivery';
-            
+            closeCheckoutModal();
+            submitCheckout(name, phone, option, date);
+        }
+
             const preferredDate = prompt('Preferred date (YYYY-MM-DD):');
             if (!preferredDate) return;
             
@@ -765,18 +958,22 @@
         }
         
         async function loadMyDonations() {
-            const donorName = document.getElementById('donorFilter').value.trim();
             const gallery = document.getElementById('myGallery');
             const messageEl = document.getElementById('mydonationsMessage');
             
+            // Get donor name from localStorage (set when they donate)
+            const donorName = localStorage.getItem('donorName');
+            
             if (!donorName) {
                 gallery.innerHTML = '';
-                messageEl.innerHTML = '';
+                messageEl.innerHTML = '<div class="message">You haven\'t made any donations yet. Start by posting a donation!</div>';
                 return;
             }
             
+            gallery.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #6b7d6b;">Loading your donations...</div>';
+            
             try {
-                const response = await fetch(`/api/my-donations/${donorName}`);
+                const response = await fetch(`/api/my-donations/${encodeURIComponent(donorName)}`);
                 const data = await response.json();
                 
                 if (data.ok && data.items.length > 0) {
@@ -784,7 +981,7 @@
                     gallery.innerHTML = data.items.map(item => renderDonationCard(item)).join('');
                 } else {
                     gallery.innerHTML = '';
-                    messageEl.innerHTML = '<div class="message success">No donations found for this name.</div>';
+                    messageEl.innerHTML = '<div class="message">No donations found. Start by posting a donation!</div>';
                 }
             } catch (error) {
                 gallery.innerHTML = '';
@@ -793,14 +990,18 @@
         }
         
         function renderDonationCard(item) {
+            const expirationDate = item.expiration_date ? new Date(item.expiration_date).toLocaleDateString() : 'N/A';
+            const postedDate = item.posted_at ? new Date(item.posted_at).toLocaleDateString() : '';
             return `
                 <div class="item-card">
-                    <img src="${item.image_url}" alt="${item.item_name}" class="item-image">
+                    <img src="${item.image_url}" alt="${item.item_name}" class="item-image" onerror="this.src='https://via.placeholder.com/300?text=No+Image'">
                     <div class="item-info">
-                        <div class="item-category">${item.category}</div>
+                        <div class="item-category">${item.category || 'Other'}</div>
                         <div class="item-name">${item.item_name}</div>
-                        <div class="item-detail">Qty: ${item.quantity}</div>
-                        <div class="item-detail">Status: ${item.status}</div>
+                        <div class="item-detail"><strong>Quantity:</strong> ${item.quantity}</div>
+                        <div class="item-detail"><strong>Expiration:</strong> ${expirationDate}</div>
+                        ${postedDate ? `<div class="item-detail"><strong>Posted:</strong> ${postedDate}</div>` : ''}
+                        <div class="item-detail"><strong>Status:</strong> <span style="color: ${item.status === 'available' ? 'green' : 'orange'}">${item.status}</span></div>
                         <div class="item-actions">
                             <button class="remove-btn" onclick="removeDonation('${item.id}')">Remove</button>
                         </div>
@@ -826,7 +1027,11 @@
             }
         }
         
+        // Initialize cart count on page load
         updateCartCount();
+        
+        // Also update cart count periodically to catch any changes
+        setInterval(updateCartCount, 2000);
     </script>
 </body>
 </html>
