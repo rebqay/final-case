@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, session
+from flask import Flask, request, jsonify, render_template, send_from_directory
 from azure.storage.blob import BlobServiceClient
 import os
 from dotenv import load_dotenv
@@ -10,16 +10,30 @@ load_dotenv()
 
 # Setup
 CONN_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
-CONTAINER_NAME = os.getenv("IMAGES_CONTAINER", "food-donations")
+CONTAINER_NAME = os.getenv("IMAGES_CONTAINER", "fooddonation")
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
-bsc = BlobServiceClient.from_connection_string(CONN_STRING)
-cc = bsc.get_container_client(CONTAINER_NAME)
+# Initialize Azure storage only if connection string is provided
+USE_AZURE = CONN_STRING and CONN_STRING.strip()
+bsc = None
+cc = None
 
-import os
+if USE_AZURE:
+    try:
+        bsc = BlobServiceClient.from_connection_string(CONN_STRING)
+        cc = bsc.get_container_client(CONTAINER_NAME)
+    except Exception as e:
+        print(f"Warning: Failed to initialize Azure storage: {e}")
+        USE_AZURE = False
+
+# Setup local file storage as fallback
+UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), '..', 'uploads')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 app = Flask(__name__, template_folder=os.path.join(os.path.dirname(__file__), '..', 'templates'))
 app.secret_key = "your-secret-key-change-in-production"
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10MB max
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # In-memory databases
 donations_db = []  # Free donations from donors
@@ -27,8 +41,43 @@ bulk_boxes_db = []  # Discounted bulk boxes ($5)
 orders_db = []  # Customer orders/carts
 users_db = {}  # Simple user tracking
 
+# Setup bulk items images directory
+BULK_IMAGES_FOLDER = os.path.join(os.path.dirname(__file__), '..', 'uploads', 'bulk')
+os.makedirs(BULK_IMAGES_FOLDER, exist_ok=True)
+
+# Global bulk items - Images should be placed in uploads/bulk/ folder
+bulk_items = [
+    {
+        "id": "bulk-1",
+        "item_name": "Fresh Produce Bundle",
+        "category": "produce",
+        "quantity": "5 lbs mixed",
+        "price": 5,
+        "image_url": "/uploads/bulk/produce_bundle.jpg",
+        "is_bulk": True
+    },
+    {
+        "id": "bulk-2",
+        "item_name": "Protein Pack",
+        "category": "canned",
+        "quantity": "8 cans protein",
+        "price": 5,
+        "image_url": "/uploads/bulk/protein_pack.jpg",
+        "is_bulk": True
+    },
+    {
+        "id": "bulk-3",
+        "item_name": "Dairy Essentials",
+        "category": "dairy",
+        "quantity": "2L milk + eggs and bread",
+        "price": 5,
+        "image_url": "/uploads/bulk/dairy_bundle.jpg",
+        "is_bulk": True
+    }
+]
+
 # ============ HEALTH CHECK ============
-@app.get("/health")
+@app.get("/api/health")
 def health():
     return jsonify(ok=True, status="FoodBridge is running")
 
@@ -58,14 +107,33 @@ def donate_food():
         if file.filename == "" or not allowed_file(file.filename):
             return jsonify(ok=False, error="Only image files allowed"), 400
         
-        # Upload to Azure
+        # Upload image (Azure or local)
         filename = secure_filename(file.filename)
         timestamp = datetime.utcnow().strftime("%Y%m%dT%H%M%S")
-        blob_name = f"{timestamp}-{filename}"
+        safe_filename = f"{timestamp}-{filename}"
         
-        blob_client = bsc.get_blob_client(CONTAINER_NAME, blob_name)
-        blob_client.upload_blob(file, overwrite=True)
-        image_url = blob_client.url
+        file.seek(0)  # Reset file pointer to beginning
+        file_data = file.read()
+        
+        if USE_AZURE and bsc:
+            try:
+                # Upload to Azure Blob Storage
+                blob_client = bsc.get_blob_client(CONTAINER_NAME, safe_filename)
+                blob_client.upload_blob(data=file_data, overwrite=True)
+                image_url = blob_client.url
+            except Exception as e:
+                print(f"Azure upload failed, falling back to local storage: {e}")
+                # Fallback to local storage
+                local_path = os.path.join(UPLOAD_FOLDER, safe_filename)
+                with open(local_path, 'wb') as f:
+                    f.write(file_data)
+                image_url = f"/uploads/{safe_filename}"
+        else:
+            # Use local file storage
+            local_path = os.path.join(UPLOAD_FOLDER, safe_filename)
+            with open(local_path, 'wb') as f:
+                f.write(file_data)
+            image_url = f"/uploads/{safe_filename}"
         
         # Create donation entry
         donation = {
@@ -91,50 +159,18 @@ def donate_food():
 # ============ RECIPIENT: BROWSE SHOP ============
 @app.get("/api/shop")
 def shop():
-    """Recipients browse free donations + bulk boxes"""
+    """Recipients browse bulk boxes only (donations are separate)"""
     try:
         category = request.args.get("category", "").strip()
         
-        # Get available free items
-        free_items = [d for d in donations_db if d["status"] == "available"]
+        # Only show bulk items in shop (donations are shown separately if needed)
+        shop_items = bulk_items.copy()
         
+        # Filter by category if specified
         if category and category != "all":
-            free_items = [d for d in free_items if d["category"] == category]
+            shop_items = [item for item in shop_items if item.get("category") == category]
         
-        # Add bulk boxes (discounted $5 boxes)
-        bulk_items = [
-            {
-                "id": "bulk-1",
-                "item_name": "Fresh Produce Bundle",
-                "category": "produce",
-                "quantity": "5 lbs mixed",
-                "price": 5,
-                "image_url": "https://via.placeholder.com/300?text=Produce+Bundle",
-                "is_bulk": True
-            },
-            {
-                "id": "bulk-2",
-                "item_name": "Protein Pack",
-                "category": "canned",
-                "quantity": "8 cans protein",
-                "price": 5,
-                "image_url": "https://via.placeholder.com/300?text=Protein+Pack",
-                "is_bulk": True
-            },
-            {
-                "id": "bulk-3",
-                "item_name": "Dairy Essentials",
-                "category": "dairy",
-                "quantity": "2L milk + cheese",
-                "price": 5,
-                "image_url": "https://via.placeholder.com/300?text=Dairy+Box",
-                "is_bulk": True
-            }
-        ]
-        
-        all_items = free_items + bulk_items
-        
-        return jsonify(ok=True, items=all_items, count=len(all_items)), 200
+        return jsonify(ok=True, items=shop_items, count=len(shop_items)), 200
     
     except Exception as e:
         return jsonify(ok=False, error=str(e)), 500
@@ -167,6 +203,37 @@ def add_to_cart():
     except Exception as e:
         return jsonify(ok=False, error=str(e)), 500
 
+# ============ RECIPIENT: REMOVE FROM CART ============
+@app.delete("/api/cart/remove")
+@app.post("/api/cart/remove")  # Also support POST for easier form submission
+def remove_from_cart():
+    """Remove item from cart"""
+    try:
+        # Try form data first, then JSON
+        user_id = request.form.get("user_id") or (request.json.get("user_id") if request.is_json else None)
+        item_id = request.form.get("item_id") or (request.json.get("item_id") if request.is_json else None)
+        
+        if not user_id or not item_id:
+            return jsonify(ok=False, error="Missing user_id or item_id"), 400
+        
+        if user_id not in users_db:
+            return jsonify(ok=False, error="User not found"), 404
+        
+        # Remove first occurrence of item with matching item_id
+        original_count = len(users_db[user_id]["cart"])
+        users_db[user_id]["cart"] = [
+            item for item in users_db[user_id]["cart"] 
+            if item["item_id"] != item_id
+        ]
+        
+        if len(users_db[user_id]["cart"]) == original_count:
+            return jsonify(ok=False, error="Item not found in cart"), 404
+        
+        return jsonify(ok=True, message="Item removed from cart"), 200
+    
+    except Exception as e:
+        return jsonify(ok=False, error=str(e)), 500
+
 # ============ RECIPIENT: GET CART ============
 @app.get("/api/cart/<user_id>")
 def get_cart(user_id):
@@ -177,9 +244,10 @@ def get_cart(user_id):
         
         cart_items = users_db[user_id]["cart"]
         
-        # Populate item details
+        # Populate item details and clean up invalid items
         detailed_cart = []
         total = 0
+        valid_cart_items = []
         
         for cart_item in cart_items:
             # Find item in donations or bulk
@@ -196,6 +264,10 @@ def get_cart(user_id):
                     "subtotal": cart_item["quantity"] * item.get("price", 0)
                 })
                 total += cart_item["quantity"] * item.get("price", 0)
+                valid_cart_items.append(cart_item)
+        
+        # Update cart to only include valid items (clean up orphaned items)
+        users_db[user_id]["cart"] = valid_cart_items
         
         return jsonify(ok=True, cart=detailed_cart, total=total), 200
     
@@ -268,6 +340,18 @@ def delete_donation(donation_id):
     
     except Exception as e:
         return jsonify(ok=False, error=str(e)), 500
+
+# ============ STATIC FILE SERVING ============
+@app.route('/uploads/<path:filename>')
+def uploaded_file(filename):
+    """Serve uploaded images from local storage (supports nested paths like bulk/)"""
+    # Handle nested paths like bulk/image.jpg
+    if '/' in filename:
+        folder, file = filename.rsplit('/', 1)
+        folder_path = os.path.join(UPLOAD_FOLDER, folder)
+        return send_from_directory(folder_path, file)
+    else:
+        return send_from_directory(UPLOAD_FOLDER, filename)
 
 # ============ HELPER ============
 def allowed_file(filename):

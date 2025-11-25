@@ -1,4 +1,14 @@
 #!/bin/bash
-python -m pip install -r requirements.txt
-export FLASK_APP=src/app.py
-python -m flask run --host=0.0.0.0 --port=8000
+# Create virtual environment if it doesn't exist
+if [ ! -d "venv" ]; then
+    python3 -m venv venv
+fi
+
+# Activate virtual environment
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the application
+python3 src/app.py
