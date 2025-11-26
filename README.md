@@ -6,10 +6,13 @@
 
 ## 1) Executive Summary
 
-**Problem:**  
+**Problem:** 
+
 Food insecurity affects millions of families while thousands of unopened, perfectly safe food items are thrown away because donors lack an easy platform to give them away. Traditional food banks do not provide real-time visibility into available donations, creating a disconnect between willing donors and recipients in need.
 
-**Solution:**  
+
+**Solution:** 
+
 FoodBridge is a full-stack, containerized web platform that connects donors with lower-income recipients in real time. Donors upload food items—including photos, categories, quantities, and expiration dates—and recipients browse available items, add them to a cart, and schedule pickup or delivery. The system demonstrates core cloud-native concepts including Flask REST APIs, Docker-based reproducibility, and Azure Blob Storage for scalable image hosting.
 
 ---
@@ -127,12 +130,25 @@ chmod +x run.sh
 
 ## Screenshots
 
+**Homepage**
 ![Homepage](assets/homepage.png)  
+
+**Donation Form**
 ![Donation Form](assets/donationform.png)  
-![Success Message](assets/successmessage.png)  
-![Shop Gallery](assets/shopgallery.png)  
+
+**Success Message**
+![Success Message](assets/successmessage.png)
+
+**Shop Gallery**
+![Shop Gallery](assets/shopgallery.png) 
+
+**Cart Modal**
 ![Cart Modal](assets/cartmodal.png)  
+
+**Checkout Form**
 ![Checkout Form](assets/cartcheckout.png)  
+
+**Order Confirmation**
 ![Order Confirmation](assets/orderconfirmed.png)
 
 ---
@@ -180,6 +196,7 @@ def test_health():
     assert r.status_code == 200
     assert r.json()["ok"] is True
 ```
+
 Run with:
 ```bash
 pytest -q
@@ -194,7 +211,7 @@ pytest -q
 
 ### Medium-Term Enhancements
 - Implement full-text search and advanced filtering  
-- Build a donation analytics dashboard (items donated, category trends, impact metrics)  
+- Build a donation analytics dashboard (items donated, category trends, impact metrics) 
 - Add a donor reputation or badges system  
 
 ### Long-Term / Stretch Goals
@@ -219,16 +236,40 @@ https://foodbridge-gthjfjddbcdwcvhc.westus3-01.azurewebsites.net/api/health
 ---
 
 # Repo Structure
-
-final-case/
-│
-├── src/ # Flask backend
-├── assets/ # Screenshots + architecture diagram
-├── tests/ # Smoke tests
-├── Dockerfile # Container definition
-├── run.sh # Optional local run script
-├── .env.example # Environment variable template (no secrets)
-├── requirements.txt
+```
+FinalCase/
+├── .github/
+│   └── workflows/
+│       └── main_foodbridge.yml
+├── assets/
+│   ├── architecturedg.png
+│   ├── cartcheckout.png
+│   ├── cartmodal.png
+│   ├── donationform.png
+│   ├── homepage.png
+│   ├── orderconfirmed.png
+│   ├── shopgallery.png
+│   └── successmessage.png
+├── src/
+│   ├── __pycache__/
+│   └── app.py
+├── templates/
+│   └── index.html
+├── tests/
+│   └── health.py
+├── uploads/
+│   ├── bulk/
+│   │   ├── dairy_bundle.jpg
+│   │   ├── produce_bundle.jpg
+│   │   └── protein_pack.jpg
+│   └── [user uploads]
+├── venv/
+├── .env.example
+├── .gitignore
+├── application.py
+├── Dockerfile
 ├── LICENSE
-└── README.md
-
+├── README.md
+├── requirements.txt
+└── run.sh
+```
