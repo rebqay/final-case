@@ -969,6 +969,7 @@
             try {
                 const response = await fetch(`/api/my-donations/${encodeURIComponent(donorName)}`);
                 const data = await response.json();
+                console.log('My donations response:', data);
                 
                 if (data.ok && data.items.length > 0) {
                     messageEl.innerHTML = '';

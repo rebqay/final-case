@@ -77,7 +77,7 @@ bulk_items = [
 ]
 
 # ============ HEALTH CHECK ============
-@app.get("/api/health")
+@app.get("/health")
 def health():
     return jsonify(ok=True, status="FoodBridge is running")
 
