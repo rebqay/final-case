@@ -155,12 +155,12 @@ chmod +x run.sh
 
 ## Functional Validation
 
-- ✔ Successfully upload donation items + images  
-- ✔ Images stored in Azure Blob and displayed publicly  
-- ✔ `/api/shop` returns available items in real time  
-- ✔ Users can add items to a cart and checkout  
-- ✔ API fully operational inside Docker container  
-- ✔ `/api/health` consistently returns OK status  
+- Successfully upload donation items + images  
+- Images stored in Azure Blob and displayed publicly  
+-`/api/shop` returns available items in real time  
+- Users can add items to a cart and checkout  
+- API fully operational inside Docker container  
+- `/api/health` consistently returns OK status  
 
 ---
 
@@ -273,3 +273,4 @@ FinalCase/
 ├── requirements.txt
 └── run.sh
 ```
+
