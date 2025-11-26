@@ -560,6 +560,10 @@
     <script>
         let currentUserId = localStorage.getItem('userId') || generateUserId();
         localStorage.setItem('userId', currentUserId);
+
+        function normalizeName(name) {
+            return name.trim().toLowerCase();
+        }
         
         function generateUserId() {
             return 'user-' + Math.random().toString(36).substr(2, 9);
@@ -622,7 +626,7 @@
                 if (data.ok) {
                     // Store donor name in localStorage for My Donations
                     if (donorName) {
-                        localStorage.setItem('donorName', donorName);
+                        localStorage.setItem('donorName', normalizeName(donorName));
                     }
                     
                     // Show success message with donation details
@@ -956,7 +960,7 @@
             const messageEl = document.getElementById('mydonationsMessage');
             
             // Get donor name from localStorage (set when they donate)
-            const donorName = localStorage.getItem('donorName');
+            const donorName = normalizeName(localStorage.getItem('donorName') || "");
             
             if (!donorName) {
                 gallery.innerHTML = '';
@@ -967,7 +971,7 @@
             gallery.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #6b7d6b;">Loading your donations...</div>';
             
             try {
-                const response = await fetch(`/api/my-donations/${encodeURIComponent(donorName)}`);
+                const response = await fetch(`/api/my-donations/${encodeURIComponent(normalizeName(donorName))}`);
                 const data = await response.json();
                 console.log('My donations response:', data);
                 
