@@ -95,7 +95,7 @@ def donate_food():
         category = request.form.get("category", "other").strip()
         quantity = request.form.get("quantity", "").strip()
         expiration = request.form.get("expiration_date", "").strip()
-        donor_name = request.form.get("donor_name", "Anonymous").strip()
+        donor_name = request.form.get("donor_name", "Anonymous").strip().lower()
         
         if not item_name or not quantity or not expiration:
             return jsonify(ok=False, error="Missing required fields"), 400
@@ -318,7 +318,8 @@ def checkout():
 def get_my_donations(donor_name):
     """Donor sees their donations"""
     try:
-        my_items = [d for d in donations_db if d["donor_name"] == donor_name]
+        normalized = (donor_name or "").strip().lower()
+        my_items = [d for d in donations_db if d.get("donor_name", "").strip().lower() == normalized]
         return jsonify(ok=True, items=my_items, count=len(my_items)), 200
     
     except Exception as e:

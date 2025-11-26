@@ -562,7 +562,7 @@
         localStorage.setItem('userId', currentUserId);
 
         function normalizeName(name) {
-            return name.trim().toLowerCase();
+            return (name || "").trim().toLowerCase();
         }
         
         function generateUserId() {
